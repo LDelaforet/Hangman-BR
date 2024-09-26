@@ -1,0 +1,23 @@
++--------------------------------+---------+
+| Nom                            | Score   |
++--------------------------------+---------+
+| Tartempion                     | 999     |
+| Leo                            | 4       |
+| Neon Genesis Shrekvangelion    | 2       |
++--------------------------------+---------+
+
+fmt.Println("+" + strings.Repeat("-", 32) + "+" + strings.Repeat("-", 9) + "+")
++--------------------------------+---------+
+
+
+fmt.Println("| " + "Nom" + strings.Repeat(" ",27) + " |" + "Score" + strings.Repeat(" ", 2) + " |")
+| Nom                            | Score   |
+
+fmt.Println("+" + strings.Repeat("-", 32) + "+" + strings.Repeat("-", 9) + "+")
++--------------------------------+---------+
+
+fmt.Println("| " + Nom + strings.Repeat(" ",30-len(Nom)) + " |" + Score + strings.Repeat(" ",7-len(Score)) + " |")
+| Neon Genesis Shrekvangelion    | 2       |
+
+fmt.Println("+" + strings.Repeat("-", 32) + "+" + strings.Repeat("-", 9) + "+")
++--------------------------------+---------+
