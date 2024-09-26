@@ -1,0 +1,27 @@
+battle royale,
+le but de chaque joueur est de faire des pendus
+y'a un timer qui est initialement de X secondes (X a determiner en jouant a ma version)
+résoudre un pendu rapporte X secondes au timer et on débloque des pouvoirs selon le score a chaque résolution
+les pouvoirs c'est un truc soit défensif soit offensif qu'on peut utiliser
+On a acces aux stats de chaque joueur en temps réel (temps restant, vies, lettres, score)
+Quand on lance un pouvoir a quelqun il sait que c'est nous et peut riposter instant si il a assez de score
+Plusieurs listes de mots, votes anonymes effectués au début de chaque partie, le serveur contient la liste
+Le serveur est au centre de tout, c'est lui qui gère toutes les operations
+Le serveur n'est pas un joueur mais un joueur peut l'avoir ouvert en parallele
+
+
+
+
+Pouvoirs défensifs:
+    Temps en + [Pas trop cher]
+    Révelation de Lettres [Moyen cher]
+    Vie en + [Moyen cher]
+    Changement de mot [Moyen cher]
+
+Pouvoirs offensifs:
+    Temps en - [Très cher]
+    Changement de mot [Très cher]
+    Lettres recachées [Moyen cher]
+    Voyelle interdites [Cher]
+    Vie en - [Très cher]
+    Incapacité d'utiliser le clavier pdt X sec (2 ou 3, pas un truc violent) [Pas trop cher]
