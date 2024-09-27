@@ -7,27 +7,83 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	tsize "github.com/kopoli/go-terminal-size"
+	"golang.org/x/term"
 )
 
-func initASCII() {
-	VarInit()
+func InitASCII() {
+	AsciiArtsInit()
 }
 
 func DisplayMainMenu() {
+	//fmt.Println(ASCIIToCenter(ASCIIArts["title"]))
 	fmt.Println(ASCIIToCenter(ASCIIArts["title"]))
-	fmt.Println(ToCenter("Bienvenue dans le jeu du pendu !"))
-	fmt.Println(ToCenter(" Veuillez choisir une option:\n"))
-	fmt.Println(ToCenter("1. Jouer seul"))
-	fmt.Println(ToCenter("2. Jouer à deux"))
-	fmt.Println(ToCenter("3. Voir le leaderboard"))
-	fmt.Println(ToCenter("99. Quitter"))
+	fmt.Println(ToCenter("Bienvenue dans:"))
+	fmt.Println(ToCenter("Hangman Battle Royale\n"))
+	fmt.Println(ToCenter(" Veuillez choisir une option:"))
+	fmt.Println(ToCenter("1. Rejoindre un serveur"))
+	fmt.Println(ToCenter("2. Changer son nom"))
+	fmt.Println(ToCenter("9. Quitter"))
+	fmt.Print(ToCenter("Choix : " + string(rune(0))))
+}
+
+func DisplayNameMenu() {
+	fmt.Println(ASCIIToCenter(ASCIIArts["title"]))
+	fmt.Println(ToCenter("Nom actuel: " + *PlayerNamePtr))
+	fmt.Print(ASCIIToCenter(ASCIIArts["boxName"])[0 : len(ASCIIToCenter(ASCIIArts["boxName"]))-1])
+	// I35 -> H12: haut:1, gauche:23
+	MoveCursorRelative(-1, -23)
+}
+
+func DisplayServerMenu() {
+	fmt.Println(ASCIIToCenter(ASCIIArts["title"]))
+	fmt.Println(ToCenter("Liste des serveurs disponibles:"))
+}
+
+// Déplace le curseur de la console relativement à sa position actuelle
+func MoveCursorRelative(rowOffset int, colOffset int) {
+	if rowOffset > 0 {
+		fmt.Printf("\033[%dB", rowOffset) // Déplacer vers le bas
+	} else if rowOffset < 0 {
+		fmt.Printf("\033[%dA", -rowOffset) // Déplacer vers le haut
+	}
+	if colOffset > 0 {
+		fmt.Printf("\033[%dC", colOffset) // Déplacer vers la droite
+	} else if colOffset < 0 {
+		fmt.Printf("\033[%dD", -colOffset) // Déplacer vers la gauche
+	}
+}
+
+// Renvoi la position du curseur
+func GetCursorPosition() (row int, col int, err error) {
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		return 0, 0, err
+	}
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
+
+	fmt.Print("\033[6n")
+
+	var buf [16]byte
+	n, err := os.Stdin.Read(buf[:])
+	if err != nil {
+		return 0, 0, err
+	}
+	response := string(buf[:n])
+	if !strings.HasPrefix(response, "\033[") || !strings.HasSuffix(response, "R") {
+		return 0, 0, fmt.Errorf("réponse inattendue du terminal: %s", response)
+	}
+	fmt.Sscanf(response, "\033[%d;%dR", &row, &col)
+	return row, col, nil
 }
 
 func ToCenter(s string) string {
 	width, _ := GetSize()
-	return strings.Repeat(" ", (width-len(s))/2) + s
+	// Oui psq len sur une string compte le nombre d'octets et pas le nombre de runes, donc tt ce qui est pas ascii est compté en double (au moins)
+	strLen := utf8.RuneCountInString(s)
+	return strings.Repeat(" ", (width-strLen)/2) + s
 }
 
 func ASCIIToCenter(s string) string {
@@ -46,11 +102,7 @@ func GetSize() (Width int, Height int) {
 	return
 }
 
-func DisplayWordChoice(currentPlayer int) {
-	fmt.Println(ToCenter("Joueur " + strconv.Itoa(currentPlayer) + ": Choisissez un mot à faire deviner à votre adversaire."))
-	fmt.Print(ToCenter(":"))
-}
-
+// Affiche les lettres déjà essayées
 func DisplayTried() {
 	fmt.Println(ToCenter("Lettres déjà essayées: "))
 	tried := ""
@@ -64,8 +116,8 @@ func DisplayTried() {
 	fmt.Println(ToCenter(tried))
 }
 
+// Affiche le mot à deviner
 func DisplayWord() {
-	fmt.Println(ToCenter("Essai n°" + strconv.Itoa(*TriesPtr) + "."))
 	firstCol := ""
 	secondCol := ""
 	for _, letter := range *FoundLettersPtr {
@@ -83,10 +135,12 @@ func DisplayWord() {
 	fmt.Println(ToCenter(firstCol))
 }
 
+// Affiche le pendu
 func DisplayHangman() {
 	fmt.Println(ASCIIToCenter(ASCIIArts["lifeCounter_"+strconv.Itoa(9-RemainingLives)]))
 }
 
+// Vide l'écran
 func ClearScreen() {
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("cmd", "/c", "cls")
@@ -99,19 +153,11 @@ func ClearScreen() {
 	}
 }
 
-func DisplayLeaderBoard() {
-	scores := SortLeaderboard(readLeaderBoard())
-	fmt.Println(ToCenter("Leaderboard:"))
-	fmt.Println(ToCenter("+" + strings.Repeat("-", 32) + "+" + strings.Repeat("-", 9) + "+"))
-	fmt.Println(ToCenter("| " + "Nom" + strings.Repeat(" ", 27) + " | " + "Score" + strings.Repeat(" ", 2) + " |"))
-	fmt.Println(ToCenter("+" + strings.Repeat("-", 32) + "+" + strings.Repeat("-", 9) + "+"))
-
-	for _, entry := range scores {
-		score := entry.score
-		name := entry.name
-
-		strscore := strconv.Itoa(score)
-		fmt.Println(ToCenter("| " + name + strings.Repeat(" ", 30-len(name)) + " | " + strscore + strings.Repeat(" ", 7-len(strscore)) + " |"))
+// Affiche un message de debug si DebugMode est activé.
+func PrintDebug(v ...interface{}) {
+	if DebugMode {
+		funcName := getFunctionName()
+		fmt.Printf("[%s] ", funcName)
+		fmt.Println(v...)
 	}
-	fmt.Println(ToCenter("+" + strings.Repeat("-", 32) + "+" + strings.Repeat("-", 9) + "+"))
 }

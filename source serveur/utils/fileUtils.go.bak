@@ -1,7 +1,8 @@
-package hangmanClient
+package hangmanServer
 
 import (
 	"os"
+	"strings"
 )
 
 // Lis le fichier donné en paramètre et retourne son contenu
@@ -39,4 +40,13 @@ func FileExists(fileName string) bool {
 func IsFileEmpty(fileName string) bool {
 	content, _ := ReadFile(fileName)
 	return content == ""
+}
+
+// Prend une chaines de caractères et la coupe a chaque \n\r
+func SplitAndFormatLines(content string) []string {
+	cont := strings.Split(content, "\n")
+	for i, line := range cont {
+		cont[i] = SliceToLetterOnly(string(line))
+	}
+	return cont
 }

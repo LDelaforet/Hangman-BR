@@ -1,4 +1,4 @@
-package Hangman
+package hangmanServer
 
 import (
 	"bufio"

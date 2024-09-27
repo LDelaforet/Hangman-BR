@@ -2,75 +2,64 @@ package hangmanClient
 
 import (
 	"fmt"
+	"net"
 	"os"
-	"strings"
 )
 
-// Détermine si le mode debug est activé
-var DebugMode bool = false
-var DebugModePtr = &DebugMode
-
-// Contient la liste des mots possibles
-var WordList []string
-var WordListPtr = &WordList
+type Server struct {
+	Name             string   // Nom du serveur
+	Description      string   // Description du serveur
+	Wordlists        []string // Listes de mots disponibles
+	PlayerCount      int      // Nombre de joueurs
+	IsListened       bool     // Si le serveur est sur écoute
+	ReceivedBuffer   []byte   // Buffer de données reçues
+	RequestResponded bool     // Si la dernière requête a été répondue
+	LastRequest      string   // Dernière requête envoyée
+	LateSetBypass    bool     // Termine le LateSet tout de suite
+	Connection       net.Conn // Connexion au serveur
+}
 
 // Contient la liste des ASCII arts
 var ASCIIArts map[string]string
 var ASCIIArtsPtr = &ASCIIArts
 
-// Nombre de vies restantes au joueur
-var RemainingLives int
-var RemainingLivesPtr = &RemainingLives
+// Détermine si le mode debug est activé
+var DebugMode bool = true
+var DebugModePtr = &DebugMode
 
-// Mot actuel en slices de runes
-var CurrentWord []rune
-var CurrentWordPtr = &CurrentWord
+// Connexion actuelle
+var CurrentServer Server
+var CurrentServerPtr *Server = &CurrentServer
 
-// Lettres déjà trouvées dans le mot
-var FoundLetters []rune
-var FoundLettersPtr = &FoundLetters
+// Données recues
+var ReceivedData []byte
+var ReceivedDataPtr *[]byte = &ReceivedData
+
+// Nom du joueur
+var PlayerName string
+var PlayerNamePtr *string = &PlayerName
+
+// Dernière ip utilisée
+var LastIP string
+var LastIPPtr *string = &LastIP
+
+// Dernier port utilisé
+var LastPort string
+var LastPortPtr *string = &LastPort
+
+// A RECUPERER AU SERVEUR
 
 // Lettres déjà essayées
 var TriedLetters []rune
 var TriedLettersPtr = &TriedLetters
 
-// Nombre d'essais
-var Tries int
-var TriesPtr = &Tries
+// Lettres déjà trouvées dans le mot
+var FoundLetters []rune
+var FoundLettersPtr = &FoundLetters
 
-// Score actuel
-var Score int
-var ScorePtr = &Score
-
-// Nom du fichier contenant les mots
-var FileName string
-var FileNamePtr = &FileName
-
-// Leaderboard filename
-var LeaderboardFileName string
-var LeaderBoardFileNamePtr = &LeaderboardFileName
-
-type LeaderboardEntry struct {
-	name  string
-	score int
-}
-
-// Initialise toute les déclarations de variables
-func VarInit() {
-	wordListInit()
-	AsciiArtsInit()
-	*RemainingLivesPtr = 9
-	*LeaderBoardFileNamePtr = "leaderboard_" + strings.Split(FileName, ".txt")[0] + ".txt"
-}
-
-// Lis le fichier containant les mots et les ajoute à la liste
-func wordListInit() {
-	wordListFile, err := ReadFile(*FileNamePtr)
-	if err != nil {
-		panic(err)
-	}
-	*WordListPtr = SplitAndFormatLines(wordListFile)
-}
+// Nombre de vies restantes au joueur
+var RemainingLives int
+var RemainingLivesPtr = &RemainingLives
 
 func AsciiArtsInit() {
 	// Initialise ASCIIArts

@@ -1,0 +1,44 @@
+// Ci-gît les fonctions retirées du code source, puissent-elles reposer en paix.
+
+// Recois un message sur la connexion donnée avec un timeout, retourne le message reçu si il contient mustcontain, mustcontain = "" pour ignorer
+func ReceiveWithTimeout(conn *Player, timeout int, mustcontain string) string {
+	PrintDebug("Reception de données, timeout de ", timeout, " secondes")
+
+	timeoutTimer := StartTimer()
+	currentSec := CheckTimer(timeoutTimer)
+	buffer := []byte{}
+
+	// Va lire en boucle jusqu'a obtenir un truc qui a mustcontain tout en respectant le timeout
+	for {
+		buffer = conn.ReceivedBuffer
+		// A remplacer par si le timer est terminé
+		if !true {
+			PrintDebug("Timeout atteint et aucune donnée reçue")
+			return ""
+		}
+		if mustcontain != "" {
+			if bytes.Contains(buffer, []byte(mustcontain)) {
+				PrintDebug("Données reçues : ", string(buffer))
+				PrintDebug("Ca contient ", mustcontain)
+				break
+			}
+			if currentSec != CheckTimer(timeoutTimer) {
+				PrintDebug("Données reçues : ", string(buffer))
+				PrintDebug("Ca contient pas ", mustcontain)
+				currentSec = CheckTimer(timeoutTimer)
+			}
+		}
+
+		if currentSec != CheckTimer(timeoutTimer) {
+			currentSec = CheckTimer(timeoutTimer)
+			PrintDebug("Au fait je tourne tjrs hein: ", currentSec)
+		}
+
+		if CheckTimer(timeoutTimer) >= timeout {
+			break
+		}
+	}
+
+	PrintDebug("Données reçues : ", string(buffer))
+	return string(buffer)
+}

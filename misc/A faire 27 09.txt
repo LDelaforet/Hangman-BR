@@ -1,0 +1,9 @@
+A FAIRE:
+
+Affichage des cases de l'ip et du port
+Modification d'userInput pour supporter le mode IP
+
+Faire en sorte que quand on bouge de case le digit de l'ip se "formatte", en gros qu'il se mette a gauche ou a droite ou au millieu
+C'est que 3 char et que des chiffres, tu devrais t'en sortir mon grand
+
+bon il est bientot 3h donc tu va te coucher connard

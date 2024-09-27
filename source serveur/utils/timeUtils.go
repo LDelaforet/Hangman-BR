@@ -1,4 +1,4 @@
-package hangmanClient
+package hangmanServer
 
 import "time"
 
