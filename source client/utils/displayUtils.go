@@ -7,14 +7,34 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"unicode/utf8"
+	"syscall"
+	"time"
 
 	tsize "github.com/kopoli/go-terminal-size"
 	"golang.org/x/term"
 )
 
+var (
+	user32               = syscall.NewLazyDLL("user32.dll")
+	procKeybdEvent       = user32.NewProc("keybd_event")
+	VK_F11          byte = 0x7A
+	KEYEVENTF_KEYUP      = 0x0002
+)
+
 func InitASCII() {
 	AsciiArtsInit()
+}
+
+func SetConsoleTitle(title string) {
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/c", "title", title)
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	} else {
+		cmd := exec.Command("printf", "\033]0;%s\007", title)
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
 }
 
 func DisplayMainMenu() {
@@ -39,7 +59,27 @@ func DisplayNameMenu() {
 
 func DisplayServerMenu() {
 	fmt.Println(ASCIIToCenter(ASCIIArts["title"]))
-	fmt.Println(ToCenter("Liste des serveurs disponibles:"))
+	fmt.Print(ASCIIToCenter(ASCIIArts["boxIP"])[0 : len(ASCIIToCenter(ASCIIArts["boxIP"]))-1])
+	MoveCursorRelative(-7, -13)
+}
+
+// Ajoute du surlignage au texte passé en paramètre
+func ToHighlight(text string) string {
+	return ("\033[7m" + text + "\033[0m")
+}
+
+func PressF11() {
+	procKeybdEvent.Call(uintptr(VK_F11), 0, 0, 0)
+	time.Sleep(100 * time.Millisecond)
+	procKeybdEvent.Call(uintptr(VK_F11), 0, uintptr(KEYEVENTF_KEYUP), 0)
+}
+
+// Retourne une chaine de caractère qui ajoute ou retire du poids pour la fonction ToCenter
+func Weight(weight int) string {
+	if weight < 0 {
+		return strings.Repeat("`", 0-weight)
+	}
+	return strings.Repeat("\x00", weight)
 }
 
 // Déplace le curseur de la console relativement à sa position actuelle
@@ -54,6 +94,11 @@ func MoveCursorRelative(rowOffset int, colOffset int) {
 	} else if colOffset < 0 {
 		fmt.Printf("\033[%dD", -colOffset) // Déplacer vers la gauche
 	}
+}
+
+// Déplace le curseur vers des coordonées absolues
+func MoveCursorAbsolute(row int, col int) {
+	fmt.Printf("\033[%d;%dH", row, col)
 }
 
 // Renvoi la position du curseur
@@ -80,10 +125,19 @@ func GetCursorPosition() (row int, col int, err error) {
 }
 
 func ToCenter(s string) string {
+	// Parcours la liste s
+	sf := ""
+	count := 0
+	for _, char := range s {
+		if char == '`' {
+			count -= 1
+			continue
+		}
+		count += 1
+		sf += string(char)
+	}
 	width, _ := GetSize()
-	// Oui psq len sur une string compte le nombre d'octets et pas le nombre de runes, donc tt ce qui est pas ascii est compté en double (au moins)
-	strLen := utf8.RuneCountInString(s)
-	return strings.Repeat(" ", (width-strLen)/2) + s
+	return strings.Repeat(" ", (width-count)/2) + sf
 }
 
 func ASCIIToCenter(s string) string {
@@ -159,5 +213,17 @@ func PrintDebug(v ...interface{}) {
 		funcName := getFunctionName()
 		fmt.Printf("[%s] ", funcName)
 		fmt.Println(v...)
+	}
+}
+
+func TitleDebug(v ...interface{}) {
+	if DebugMode {
+		toTitle := ""
+		funcName := getFunctionName()
+		toTitle = fmt.Sprintf("[%s] ", funcName)
+		for _, val := range v {
+			toTitle += fmt.Sprintf("%v", val)
+		}
+		SetConsoleTitle(toTitle)
 	}
 }

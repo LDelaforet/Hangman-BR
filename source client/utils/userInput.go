@@ -39,13 +39,17 @@ func GetInput(maxLength int, inputType string, ipPos int) string {
 	}()
 	pos := 0
 	modeView := false
+	ipMode := false
+	if ipPos != 0 {
+		ipMode = true
+	}
 	for {
+		//SetConsoleTitle("Pos: " + strconv.Itoa(pos))
 		var char [1]byte                 // Déclare un tableau de bytes de taille 1
 		_, err := os.Stdin.Read(char[:]) // Lire un caractère
 		if err != nil {
 			return ""
 		}
-
 		if modeView {
 			fmt.Println("Char: ", char)
 			continue
@@ -58,32 +62,98 @@ func GetInput(maxLength int, inputType string, ipPos int) string {
 			if err != nil {
 				return ""
 			}
+
+			if seq[0] == 91 {
+				return "TOLEFT"
+			}
+
 			if seq[0] == '[' && seq[1] == 'D' {
 				if pos > 0 {
 					MoveCursorRelative(0, -1)
 					pos--
+				} else if ipMode {
+					TitleDebug(ipPos)
+					if ipPos > 1 {
+						return "TOLEFT" + input.String()
+					}
+				} else if inputType == "arrowOnly" {
+					return "TOLEFT"
 				}
-				continue // Passer à l'itération suivante
+				continue
 			}
 			if seq[0] == '[' && seq[1] == 'C' {
 				if pos < input.Len() {
 					MoveCursorRelative(0, 1)
 					pos++
+				} else if ipMode {
+					TitleDebug(ipPos)
+					if ipPos < 5 {
+						return "TORIGHT" + input.String()
+					}
+				} else if inputType == "arrowOnly" {
+					return "TORIGHT"
 				}
-				continue // Passer à l'itération suivante
+				continue
+			}
+			if seq[0] == '[' && seq[1] == 'A' {
+				if inputType == "arrowOnly" {
+					return "UP"
+				}
+			}
+			if seq[0] == '[' && seq[1] == 'B' {
+				if inputType == "arrowOnly" {
+					return "DOWN"
+				}
 			}
 			continue
 		}
 
+		// . permet de passer a la prochaine case
+		if char[0] == '.' {
+			if ipMode {
+				TitleDebug(ipPos)
+				// On passe pas au suivant si y'a rien dans la case
+				if input.Len() != 0 {
+					if ipPos < 5 {
+						return "TORIGHT" + input.String()
+					}
+				}
+			}
+		}
+
+		// : permet de skipper directement au port
+		if char[0] == ':' {
+			if ipMode {
+				TitleDebug(ipPos)
+				// On passe pas au suivant si y'a rien dans la case
+				if input.Len() != 0 {
+					if ipPos == 4 {
+						return "TORIGHT" + input.String()
+					}
+				}
+			}
+		}
+
 		if char[0] == '\n' || char[0] == '\r' { // Fin de la saisie
-			break
+			if ipMode {
+				if ipPos < 5 {
+					return "TORIGHT" + input.String()
+				} else {
+					return "FINISHED" + input.String()
+				}
+			} else if inputType == "arrowOnly" {
+				return "VALIDATE"
+			} else {
+				return input.String()
+			}
 		}
 
 		if char[0] == 127 { // Touche Retour Arrière (Backspace, ASCII 127)
-			if input.Len() > 0 && pos > 0 { // Vérifiez s'il y a des caractères à supprimer et si la position du curseur est > 0
+			// Check si on a vrmnt des trucs a del et si le curseur est pas a 0
+			if input.Len() > 0 && pos > 0 {
 				inputStr := input.String()
 
-				// Supprimer le caractère avant la position du curseur
+				// Supprime le char avant la position du curseur
 				input.Reset()
 				input.WriteString(inputStr[:pos-1]) // Conserver tout avant le curseur
 				if pos < len(inputStr) {
@@ -93,10 +163,10 @@ func GetInput(maxLength int, inputType string, ipPos int) string {
 				// Déplacer le curseur d'une position vers la gauche
 				MoveCursorRelative(0, -1)
 
-				// Effacer le caractère supprimé et réafficher le reste
+				// Effacer le char supprimé et réafficher le reste
 				fmt.Print(inputStr[pos:])
-				fmt.Print(" ")                                // Effacer le dernier caractère visuellement
-				MoveCursorRelative(0, -len(inputStr[pos:])-1) // Replacer le curseur
+				fmt.Print(" ")
+				MoveCursorRelative(0, -len(inputStr[pos:])-1)
 
 				// Mettre à jour la position du curseur
 				pos--
@@ -116,6 +186,10 @@ func GetInput(maxLength int, inputType string, ipPos int) string {
 			filter = unicode.IsDigit(rune(char[0]))
 		case "lettersAndDigits":
 			filter = unicode.IsLetter(rune(char[0])) || unicode.IsDigit(rune(char[0]))
+		case "ouiOuNon":
+			filter = char[0] == 'o' || char[0] == 'O' || char[0] == 'n' || char[0] == 'N' || char[0] == 'y' || char[0] == 'Y'
+		case "arrowOnly":
+			filter = false
 		default:
 			filter = true // Accepter tout autre caractère
 		}
@@ -150,6 +224,12 @@ func GetInput(maxLength int, inputType string, ipPos int) string {
 			}
 		}
 
+		if ipMode {
+			SetConsoleTitle("ON EST EN IP MODE {pos: " + fmt.Sprint(pos) + ", ipPos: " + fmt.Sprint(ipPos) + "(<5)}")
+			if pos == 3 && ipPos < 5 {
+				return "TORIGHT" + input.String()
+			}
+		}
 	}
 
 	return input.String()
